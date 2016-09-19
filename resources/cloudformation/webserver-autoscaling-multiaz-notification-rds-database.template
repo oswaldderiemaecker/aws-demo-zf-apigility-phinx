@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion":"2010-09-09",
-	"Description":"continuousphp AWS CloudFormation PHP Sample Template AutoScalingMultiAZWithNotifications and an RDS_Snapshot_On_Delete: Create a multi-az, load balanced and Auto Scaled sample web site running on an Apache Web Serever. The application is configured to span all Availability Zones in the region and is Auto-Scaled based on the CPU utilization of the web servers. Notifications will be sent to the operator email address on scaling events. The instances are load balanced with a simple health check against the default web page, a sample database create an RDS DBInstance that is snapshotted on stack deletion. **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+	"Description":"continuousphp AWS CloudFormation PHP Sample Template AutoScalingMultiAZWithNotifications and an RDS_Snapshot_On_Delete: Create a VPC, multi-az, load balanced and Auto Scaled sample web site running on an Apache Web Serever. The application is configured to span all Availability Zones in the region and is Auto-Scaled based on the CPU utilization of the web servers. Notifications will be sent to the operator email address on scaling events. The instances are load balanced with a simple health check against the default web page, a sample database create an RDS DBInstance that is snapshotted on stack deletion. **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
 	"Parameters":{
 		"InstanceType":{
 			"Description":"WebServer EC2 instance type",
@@ -57,7 +57,7 @@
 		},
 		"S3AppsBucket":{
 			"Description":"The S3 Application Bucket",
-			"Default":"mycompany-package-testing/testing",
+			"Default":"mycompany-package/testing",
 			"Type":"String"
 		}
 		
@@ -86,34 +86,31 @@
 				"HVM64":"ami-a495eab3"
 			},
 			"us-west-2":{
-				"HVM64":"ami-7172b611"
+				"HVM64":"ami-b03fe2d0"
 			},
 			"us-west-1":{
 				"HVM64":"ami-84cd82e4"
 			},
 			"eu-west-1":{
-				"HVM64":"ami-f9dd458a"
+				"HVM64":"ami-00136873"
 			},
 			"eu-central-1":{
-				"HVM64":"ami-ea26ce85"
+				"HVM64":"ami-f8e41997"
 			},
 			"ap-northeast-1":{
-				"HVM64":"ami-374db956"
+				"HVM64":"ami-064e9e67"
 			},
 			"ap-northeast-2":{
-				"HVM64":"ami-2b408b45"
+				"HVM64":"ami-79568317"
 			},
 			"ap-southeast-1":{
-				"HVM64":"ami-a59b49c6"
+				"HVM64":"ami-cdd772ae"
 			},
 			"ap-southeast-2":{
-				"HVM64":"ami-dc361ebf"
+				"HVM64":"ami-31340452"
 			},
 			"sa-east-1":{
-				"HVM64":"ami-6dd04501"
-			},
-			"cn-north-1":{
-				"HVM64":"ami-8e6aa0e3"
+				"HVM64":"ami-e2e97a8e"
 			}
 			
 		}
@@ -132,6 +129,130 @@
 					}
 					
 				]
+				
+			}
+			
+		},
+		"Vpc":{
+			"Type":"AWS::EC2::VPC",
+			"Properties":{
+				"CidrBlock":"10.0.0.0/16",
+				"InstanceTenancy":"default",
+				"EnableDnsSupport":"true",
+				"EnableDnsHostnames":"true"
+			}
+			
+		},
+		"Igw":{
+			"Type":"AWS::EC2::InternetGateway",
+			"Properties":{
+				
+			}
+			
+		},
+		"PublicSubnet0":{
+			"Type":"AWS::EC2::Subnet",
+			"Properties":{
+				"CidrBlock":"10.0.0.0/24",
+				"VpcId":{
+					"Ref":"Vpc"
+				},
+				"AvailabilityZone":{
+					"Fn::Select":[
+						"0",
+						{
+							"Fn::GetAZs":""
+						}
+						
+					]
+					
+				}
+				
+			}
+			
+		},
+		"PublicSubnet10":{
+			"Type":"AWS::EC2::Subnet",
+			"Properties":{
+				"CidrBlock":"10.0.10.0/24",
+				"VpcId":{
+					"Ref":"Vpc"
+				},
+				"AvailabilityZone":{
+					"Fn::Select":[
+						"1",
+						{
+							"Fn::GetAZs":""
+						}
+						
+					]
+					
+				}
+				
+			}
+			
+		},
+		"PublicRoute":{
+			"Type":"AWS::EC2::Route",
+			"Properties":{
+				"DestinationCidrBlock":"0.0.0.0/0",
+				"RouteTableId":{
+					"Ref":"PublicRouteTable"
+				},
+				"GatewayId":{
+					"Ref":"Igw"
+				}
+				
+			},
+			"DependsOn":"GatewayAttachIgw"
+		},
+		"PublicRouteTable":{
+			"Type":"AWS::EC2::RouteTable",
+			"Properties":{
+				"VpcId":{
+					"Ref":"Vpc"
+				}
+				
+			}
+			
+		},
+		"SubnetRoutePublic0":{
+			"Type":"AWS::EC2::SubnetRouteTableAssociation",
+			"DependsOn":"PublicRouteTable",
+			"Properties":{
+				"RouteTableId":{
+					"Ref":"PublicRouteTable"
+				},
+				"SubnetId":{
+					"Ref":"PublicSubnet0"
+				}
+				
+			}
+			
+		},
+		"SubnetRoutePublic10":{
+			"Type":"AWS::EC2::SubnetRouteTableAssociation",
+			"DependsOn":"PublicRouteTable",
+			"Properties":{
+				"RouteTableId":{
+					"Ref":"PublicRouteTable"
+				},
+				"SubnetId":{
+					"Ref":"PublicSubnet10"
+				}
+				
+			}
+			
+		},
+		"GatewayAttachIgw":{
+			"Type":"AWS::EC2::VPCGatewayAttachment",
+			"Properties":{
+				"VpcId":{
+					"Ref":"Vpc"
+				},
+				"InternetGatewayId":{
+					"Ref":"Igw"
+				}
 				
 			}
 			
@@ -223,9 +344,15 @@
 		"WebServerGroup":{
 			"Type":"AWS::AutoScaling::AutoScalingGroup",
 			"Properties":{
-				"AvailabilityZones":{
-					"Fn::GetAZs":""
-				},
+				"VPCZoneIdentifier":[
+					{
+						"Ref":"PublicSubnet0"
+					},
+					{
+						"Ref":"PublicSubnet10"
+					}
+					
+				],
 				"LaunchConfigurationName":{
 					"Ref":"LaunchConfig"
 				},
@@ -256,6 +383,7 @@
 		"LaunchConfig":{
 			"Type":"AWS::AutoScaling::LaunchConfiguration",
 			"Properties":{
+				"AssociatePublicIpAddress":"true",
 				"KeyName":{
 					"Ref":"KeyName"
 				},
@@ -418,12 +546,45 @@
 			}
 			
 		},
+		"ElbSecurityGroup":{
+			"Type":"AWS::EC2::SecurityGroup",
+			"Properties":{
+				"GroupDescription":"Elb Security Group",
+				"VpcId":{
+					"Ref":"Vpc"
+				},
+				"SecurityGroupIngress":[
+					{
+						"IpProtocol":"tcp",
+						"FromPort":"80",
+						"ToPort":"80",
+						"CidrIp":"0.0.0.0/0"
+					}
+					
+				],
+				"SecurityGroupEgress":[
+					{
+						"IpProtocol":"-1",
+						"CidrIp":"0.0.0.0/0"
+					}
+					
+				]
+				
+			}
+			
+		},
 		"ElasticLoadBalancer":{
 			"Type":"AWS::ElasticLoadBalancing::LoadBalancer",
 			"Properties":{
-				"AvailabilityZones":{
-					"Fn::GetAZs":""
-				},
+				"Subnets":[
+					{
+						"Ref":"PublicSubnet0"
+					},
+					{
+						"Ref":"PublicSubnet10"
+					}
+					
+				],
 				"CrossZone":"true",
 				"Listeners":[
 					{
@@ -439,7 +600,13 @@
 					"UnhealthyThreshold":"5",
 					"Interval":"30",
 					"Timeout":"5"
-				}
+				},
+				"SecurityGroups":[
+					{
+						"Ref":"ElbSecurityGroup"
+					}
+					
+				]
 				
 			}
 			
@@ -462,40 +629,57 @@
 						"IpProtocol":"tcp",
 						"FromPort":"80",
 						"ToPort":"80",
-						"SourceSecurityGroupOwnerId":{
-							"Fn::GetAtt":[
-								"ElasticLoadBalancer",
-								"SourceSecurityGroup.OwnerAlias"
-							]
-							
-						},
-						"SourceSecurityGroupName":{
-							"Fn::GetAtt":[
-								"ElasticLoadBalancer",
-								"SourceSecurityGroup.GroupName"
-							]
-							
+						"SourceSecurityGroupId":{
+							"Ref":"ElbSecurityGroup"
 						}
 						
+					}
+					
+				],
+				"VpcId":{
+					"Ref":"Vpc"
+				}
+				
+			}
+			
+		},
+		"DbSecurityGroup":{
+			"Type":"AWS::EC2::SecurityGroup",
+			"Properties":{
+				"GroupDescription":"Enable SSH access and HTTP from the load balancer only",
+				"SecurityGroupIngress":[
+					{
+						"IpProtocol":"tcp",
+						"FromPort":"3306",
+						"ToPort":"3306",
+						"SourceSecurityGroupId":{
+							"Ref":"InstanceSecurityGroup"
+						}
+						
+					}
+					
+				],
+				"VpcId": { "Ref": "Vpc"}
+				
+			}
+			
+		},
+		"DbSubnetGroup":{
+			"Type":"AWS::RDS::DBSubnetGroup",
+			"Properties":{
+				"DBSubnetGroupDescription":"Database private subnets",
+				"SubnetIds":[
+					{
+						"Ref":"PublicSubnet0"
+					},
+					{
+						"Ref":"PublicSubnet10"
 					}
 					
 				]
 				
 			}
 			
-		},
-		"DBSecurityGroup":{
-			"Type":"AWS::RDS::DBSecurityGroup",
-			"Properties":{
-				"DBSecurityGroupIngress":[
-					{
-						"EC2SecurityGroupName":{
-							"Ref":"InstanceSecurityGroup"
-						}
-					}
-				],
-				"GroupDescription":"WebServer Access"
-			}
 		},
 		"DBInstance":{
 			"Type":"AWS::RDS::DBInstance",
@@ -510,15 +694,18 @@
 				"MasterUserPassword":{
 					"Ref":"RdsDBPassword"
 				},
-				"DBSecurityGroups":[
+				"DBSubnetGroupName":{
+					"Ref":"DbSubnetGroup"
+				},
+				"VPCSecurityGroups":[
 					{
-						"Ref":"DBSecurityGroup"
+						"Ref":"DbSecurityGroup"
 					}
 					
 				]
 				
 			},
-			"DeletionPolicy":"Snapshot"
+			"DeletionPolicy":"Delete"
 		}
 		
 	},
