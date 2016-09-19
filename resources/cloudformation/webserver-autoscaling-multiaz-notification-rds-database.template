@@ -89,7 +89,7 @@
 				"HVM64":"ami-7172b611"
 			},
 			"us-west-1":{
-				"HVM64":"ami-31490d51"
+				"HVM64":"ami-84cd82e4"
 			},
 			"eu-west-1":{
 				"HVM64":"ami-f9dd458a"
